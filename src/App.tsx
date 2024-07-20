@@ -176,7 +176,21 @@ function App() {
                         Path: {index + 1} ({triangles[index]?.length || '-'})
                       </span>
                       <Tooltip title="Copy triangles to clipboard">
-                        <Button size="small" icon={<CopyOutlined />} />
+                        <Button
+                          size="small"
+                          icon={<CopyOutlined />}
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              JSON.stringify(
+                                triangles[index].map((t) => [
+                                  [t.x1, t.y1],
+                                  [t.x2, t.y2],
+                                  [t.x3, t.y3],
+                                ]),
+                              ),
+                            );
+                          }}
+                        />
                       </Tooltip>
                     </div>
                   </Checkbox>
