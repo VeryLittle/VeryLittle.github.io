@@ -29,13 +29,16 @@ export const generatePointsFromPath = (path: SVGPathElement, pointsPerPixels: nu
   const pointsCount = Math.floor((length * pointsPerPixels) / 1000);
   const points = [];
 
-  for (let i = 0; i < pointsCount; i++) {
-    let pt = path.getPointAtLength((i * length) / (pointsCount - 1));
-    if (path.transform.baseVal.length > 0) {
-      const matrix = path.transform.baseVal.consolidate()?.matrix;
-      pt = pt.matrixTransform(matrix);
+  if (pointsCount > 1) {
+    for (let i = 0; i < pointsCount; i++) {
+      let pt = path.getPointAtLength((i * length) / (pointsCount - 1));
+
+      if (path.transform.baseVal.length > 0) {
+        const matrix = path.transform.baseVal.consolidate()?.matrix;
+        pt = pt.matrixTransform(matrix);
+      }
+      points.push(pt);
     }
-    points.push(pt);
   }
 
   return points;

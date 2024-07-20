@@ -18,6 +18,25 @@ export const SvgUploader: FC<SvgUploaderProps> = (props) => {
     if (file) {
       (file as unknown as File).text().then((text) => {
         const root = new DOMParser().parseFromString(text, 'image/svg+xml');
+        root.querySelectorAll('path').forEach((path) => {
+          path.setAttribute('strike', path.getAttribute('fill') || '');
+          path.setAttribute('fill', '');
+
+          const ds = (path.getAttribute('d') || '')
+            .split('M')
+            .filter(Boolean)
+            .map((d) => `M${d}`);
+
+          if (ds.length > 1) {
+            path.setAttribute('d', ds[0]);
+
+            ds.slice(1).forEach((d) => {
+              const extraPath = path.cloneNode() as SVGPathElement;
+              extraPath.setAttribute('d', d);
+              path.after(extraPath);
+            });
+          }
+        });
         props.onChange(root.querySelector('svg'));
       });
     } else {
