@@ -1,61 +1,55 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SvgUploader } from './components/SvgUploader';
-import { Button, Checkbox, ColorPicker, Form, Switch, Tooltip } from 'antd';
-import { CopyOutlined } from '@ant-design/icons';
+import { Button, Checkbox, ColorPicker, Dropdown, Form, Switch, Tooltip } from 'antd';
+import { CheckOutlined, CopyOutlined, SwitcherOutlined } from '@ant-design/icons';
 import { Header } from './components/Header';
 import lodash from 'lodash';
-import {
-  filterRow,
-  generatePointsFromPath,
-  generateTriangleMesh,
-  getPaths,
-  type Point,
-  type Triangle,
-} from './utils';
+import { filterRow, generatePointsFromPath, generateTriangleMesh, type Point, type Triangle } from './utils';
 import { IntegerStep } from './components/IntegerStep';
 import { DecimalStep } from './components/DecimalStep';
+import { useCanvas } from './hooks/useCanvas';
+import { type PathConfig, usePaths } from './hooks/usePaths';
+import { getElementSize } from './helpers/common';
 
-const renderPath = (context: CanvasRenderingContext2D, path: SVGPathElement) => {
-  const xml = `<svg fill="none" xmlns="http://www.w3.org/2000/svg">${new XMLSerializer().serializeToString(path)}</svg>`;
-  const image64 = `data:image/svg+xml;base64,${btoa(xml)}`;
-  const img = document.createElement('img');
-  img.onload = () => {
-    context.drawImage(img, 0, 0);
-  };
-  img.src = image64;
-};
+// function inside(point: [number, number], vs: [number, number][]) {
+//   const x = point[0];
+//   const y = point[1];
 
-export const drawTriangle = (ctx: CanvasRenderingContext2D, triangle: Triangle, color: string) => {
-  ctx.strokeStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(triangle.x1, triangle.y1);
-  ctx.lineTo(triangle.x2, triangle.y2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(triangle.x2, triangle.y2);
-  ctx.lineTo(triangle.x3, triangle.y3);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(triangle.x3, triangle.y3);
-  ctx.lineTo(triangle.x1, triangle.y1);
-  ctx.stroke();
-};
+//   let inside = false;
+//   for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+//     const xi = vs[i][0];
+//     const yi = vs[i][1];
+//     const xj = vs[j][0];
+//     const yj = vs[j][1];
 
-export const drawLine = (ctx: CanvasRenderingContext2D, p1: Point, p2: Point, color: string) => {
-  ctx.strokeStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(p1.x, p1.y);
-  ctx.lineTo(p2.x, p2.y);
-  ctx.stroke();
+//     const intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+//     if (intersect) inside = !inside;
+//   }
+
+//   return inside;
+// }
+
+const hit = (x: number, y: number, points: number[][]) => {
+  let inside = false;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const [xi, yi] = points[i];
+    const [xj, yj] = points[j];
+    const intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+    if (intersect) {
+      inside = !inside;
+    }
+  }
+  return inside;
 };
 
 function App() {
-  const pathCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const meshCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const pathCanvas = useCanvas();
+  const meshCanvas = useCanvas();
 
-  const [paths, setPaths] = useState<SVGPathElement[]>([]);
-  const [selectedPathIndexes, setSelectedPathIndexes] = useState<number[]>([]);
-  const [colors, setColors] = useState<string[]>([]);
+  const [svgElement, setSvgElement] = useState<SVGElement>(
+    document.createElementNS('http://www.w3.org/2000/svg', 'svg'),
+  );
+  const { paths, configs, updateConfig } = usePaths({ svgElement });
 
   const [maxPoints, setMaxPoints] = useState(100);
   const [smoothing, setSmoothing] = useState(0.5);
@@ -65,69 +59,74 @@ function App() {
   const [triangles, setTriangles] = useState<Triangle[][]>([]);
 
   const handleNewSvg = (svgElement: SVGElement | null) => {
-    const pathCanvas = pathCanvasRef.current;
-    const meshCanvas = meshCanvasRef.current;
-
-    const context = pathCanvas?.getContext('2d');
-    if (!(meshCanvas && pathCanvas && context)) return;
-
+    svgElement && setSvgElement(svgElement);
     let rect = { width: 100, height: 100 };
 
     if (svgElement) {
-      svgElement.style.left = '-9999';
-      svgElement.style.position = 'absolute';
-      document.body.append(svgElement);
-      rect = svgElement.getBoundingClientRect();
-      document.body.removeChild(svgElement);
+      rect = getElementSize(svgElement);
     }
 
-    pathCanvas.width = meshCanvas.width = rect.width;
-    pathCanvas.height = meshCanvas.height = rect.height;
-    context.clearRect(0, 0, pathCanvas.width, pathCanvas.height);
-
-    const paths = svgElement ? getPaths(svgElement) : [];
-    setPaths(paths);
-    setSelectedPathIndexes(paths.map((_, index) => index));
-    setColors(paths.map(() => `#${Math.floor(Math.random() * 16777215).toString(16)}`));
+    pathCanvas.setSize(rect.width, rect.height);
+    meshCanvas.setSize(rect.width, rect.height);
   };
 
-  useEffect(() => {
-    const canvas = pathCanvasRef.current;
-    const context = canvas?.getContext('2d');
-    if (!(canvas && context)) return;
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    selectedPathIndexes.forEach((index) => renderPath(context, paths[index]));
-  }, [selectedPathIndexes, paths]);
-
-  useEffect(() => {
-    const canvas = meshCanvasRef.current;
-    const context = canvas?.getContext('2d');
-    if (!(canvas && context)) return;
-    context.clearRect(0, 0, canvas.width, canvas.height);
-
-    if (onlyBorders) {
-      selectedPathIndexes.forEach((pathIndex) => {
-        points[pathIndex]?.forEach((_, pointIndex, array) => {
-          drawLine(context, array[pointIndex], array[pointIndex + 1] || array[0], colors[pathIndex]);
-        });
+  const drawPath = useCallback(
+    lodash.throttle((configs: PathConfig[]) => {
+      pathCanvas.clear();
+      configs.map((path) => {
+        if (path.selected) {
+          [...path.excluded, path.element].forEach((el) => pathCanvas.drawPath(el));
+        }
       });
-    } else {
-      selectedPathIndexes.forEach((index) => {
-        triangles[index]?.forEach((triangle) => drawTriangle(context, triangle, colors[index]));
-      });
-    }
-  }, [triangles, points, onlyBorders, selectedPathIndexes, colors]);
-
-  const recalculate = useCallback(
-    lodash.debounce((maxPoints: number, smoothing: number, paths: SVGPathElement[]) => {
-      const newPoints = paths.map((path) => filterRow(generatePointsFromPath(path, maxPoints), smoothing));
-      setPoints(newPoints);
-      setTriangles(newPoints.map((points) => generateTriangleMesh(points)));
-    }, 200),
+    }, 300),
     [],
   );
 
-  useEffect(() => recalculate(maxPoints, smoothing, paths), [maxPoints, smoothing, paths, recalculate]);
+  useEffect(() => {
+    drawPath(configs);
+  }, [configs, drawPath]);
+
+  useEffect(() => {
+    meshCanvas.clear();
+    configs.forEach((path, pathIndex) => {
+      if (!path.selected) return;
+
+      meshCanvas.setColor(path.color);
+
+      points[pathIndex]?.forEach((_, pointIndex, array) => {
+        meshCanvas.drawLine(array[pointIndex], array[pointIndex + 1] || array[0]);
+      });
+
+      if (onlyBorders) {
+        meshCanvas.drawPattern(triangles[pathIndex] || []);
+      } else {
+        triangles[pathIndex]?.forEach((triangle) => meshCanvas.drawTriangle(triangle));
+      }
+    });
+  }, [triangles, points, onlyBorders, meshCanvas, configs]);
+
+  useEffect(() => {
+    try {
+      const newPoints = new Map(
+        configs.map((path) => [
+          path.element,
+          filterRow(generatePointsFromPath(path.bezier, maxPoints), smoothing),
+        ]),
+      );
+      setPoints([...newPoints.values()]);
+      setTriangles(
+        configs.map((path) =>
+          generateTriangleMesh(
+            newPoints.get(path.element) || [],
+            // @ts-ignore
+            path.excluded
+              .map((ex) => newPoints.get(ex))
+              .filter(Boolean),
+          ),
+        ),
+      );
+    } catch {}
+  }, [maxPoints, smoothing, configs]);
 
   return (
     <>
@@ -136,8 +135,51 @@ function App() {
         <div className="flex grow gap-4">
           <div className="grow">
             <div className="overflow-scroll h-full relative">
-              <canvas ref={pathCanvasRef} width="100" height="100" className="absolute" />
-              <canvas ref={meshCanvasRef} width="100" height="100" className="absolute" />
+              <canvas
+                ref={pathCanvas.ref}
+                width="100"
+                height="100"
+                className="absolute"
+                style={{ opacity: 1 }}
+              />
+              <canvas
+                ref={meshCanvas.ref}
+                width="100"
+                height="100"
+                className="absolute"
+                onMouseLeave={() => {
+                  document.body.classList.remove('cursor-pointer');
+                }}
+                onMouseMove={lodash.throttle((e) => {
+                  const rect = e.target.getBoundingClientRect();
+                  const x = e.clientX - rect.left;
+                  const y = e.clientY - rect.top;
+
+                  // const hovered = points.findIndex((p) =>
+                  //   inside(
+                  //     [x, y],
+                  //     p.map((p) => [p.x, p.y]),
+                  //   ),
+                  // );
+
+                  const hovered = triangles.find((trianglesByPath, index) => {
+                    if (!configs[index].selected) return false;
+                    return trianglesByPath.find((triangle) =>
+                      hit(x, y, [
+                        [triangle.a.x, triangle.a.y],
+                        [triangle.b.x, triangle.b.y],
+                        [triangle.c.x, triangle.c.y],
+                      ]),
+                    );
+                  });
+
+                  if (hovered) {
+                    document.body.classList.add('cursor-pointer');
+                  } else {
+                    document.body.classList.remove('cursor-pointer');
+                  }
+                }, 30)}
+              />
             </div>
           </div>
           <div className="w-64 pr-4">
@@ -162,49 +204,81 @@ function App() {
               </Form.Item>
             </Form>
 
-            <Checkbox.Group
-              onChange={setSelectedPathIndexes}
-              value={selectedPathIndexes}
-              className="flex flex-col gap-2 mt-6"
-            >
-              {paths.map((_, index) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-                <div key={index} className="flex items-center gap-2">
-                  <Checkbox value={index}>
-                    <div className="flex items-center gap-2">
+            <Checkbox.Group className="flex flex-col gap-2 mt-6">
+              {configs.map((pathConfig, index) => (
+                <div key={pathConfig.id} className="flex items-center gap-2 justify-between">
+                  <Checkbox
+                    skipGroup
+                    checked={pathConfig.selected}
+                    onChange={() => updateConfig({ ...pathConfig, selected: !pathConfig.selected })}
+                  >
+                    <div className="flex items-center">
                       <span>
-                        Path: {index + 1} ({triangles[index]?.length || '-'})
+                        Path: {index + 1} ({points[index]?.length || '-'}, {triangles[index]?.length || '-'})
                       </span>
-                      <Tooltip title="Copy triangles to clipboard">
-                        <Button
-                          size="small"
-                          icon={<CopyOutlined />}
-                          onClick={() => {
-                            navigator.clipboard.writeText(
-                              JSON.stringify(
-                                triangles[index].map((t) => [
-                                  [t.x1, t.y1],
-                                  [t.x2, t.y2],
-                                  [t.x3, t.y3],
-                                ]),
-                              ),
-                            );
-                          }}
-                        />
-                      </Tooltip>
                     </div>
                   </Checkbox>
-                  <ColorPicker
-                    size="small"
-                    value={colors[index]}
-                    onChange={(newColor) =>
-                      setColors([
-                        ...colors.slice(0, index),
-                        newColor.toHexString(),
-                        ...colors.slice(index + 1),
-                      ])
-                    }
-                  />
+                  <div className="flex items-center gap-2">
+                    <Tooltip title="Copy triangles to clipboard">
+                      <Button
+                        size="small"
+                        icon={<CopyOutlined />}
+                        onClick={() => {
+                          navigator.clipboard.writeText(
+                            JSON.stringify(
+                              triangles[index].map((t) => [
+                                [t.a.x, t.a.y],
+                                [t.b.x, t.b.y],
+                                [t.c.x, t.c.y],
+                              ]),
+                            ),
+                            // JSON.stringify(points[index].flatMap((t) => [+t.x.toFixed(), +t.y.toFixed()])),
+                          );
+                        }}
+                      />
+                    </Tooltip>
+                    <ColorPicker
+                      size="small"
+                      value={pathConfig.color}
+                      onChange={(newColor) => updateConfig({ ...pathConfig, color: newColor.toHexString() })}
+                    />
+                    <Dropdown
+                      menu={{
+                        items: configs.map((menuPathConfig, menuKey) => {
+                          return {
+                            key: menuKey,
+                            label: (
+                              <div className="flex justify-between w-28">
+                                <span>Path: {menuKey + 1}</span>
+                                {pathConfig.excluded.includes(menuPathConfig.element) ? (
+                                  <CheckOutlined />
+                                ) : (
+                                  <div />
+                                )}
+                              </div>
+                            ),
+                            type: 'item',
+                            disabled: menuPathConfig.id === pathConfig.id,
+                            onClick: () => {
+                              if (pathConfig.excluded.includes(menuPathConfig.element)) {
+                                updateConfig({
+                                  ...pathConfig,
+                                  excluded: pathConfig.excluded.filter((p) => p !== menuPathConfig.element),
+                                });
+                              } else {
+                                updateConfig({
+                                  ...pathConfig,
+                                  excluded: [...pathConfig.excluded, menuPathConfig.element],
+                                });
+                              }
+                            },
+                          };
+                        }),
+                      }}
+                    >
+                      <Button size="small" icon={<SwitcherOutlined />} />
+                    </Dropdown>
+                  </div>
                 </div>
               ))}
             </Checkbox.Group>

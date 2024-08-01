@@ -1,7 +1,6 @@
 import { UploadOutlined } from '@ant-design/icons';
 import { type UploadFile, Upload, Button, message } from 'antd';
 import { useState, type FC } from 'react';
-import { PathSplitter } from '../../path';
 
 const validateFileType = ({ type }: UploadFile, allowedTypes?: string) => {
   if (!allowedTypes) return true;
@@ -19,22 +18,6 @@ export const SvgUploader: FC<SvgUploaderProps> = (props) => {
     if (file) {
       (file as unknown as File).text().then((text) => {
         const root = new DOMParser().parseFromString(text, 'image/svg+xml');
-        root.querySelectorAll('path').forEach((path) => {
-          path.setAttribute('strike', path.getAttribute('fill') || '');
-          path.setAttribute('fill', '');
-
-          const ds = PathSplitter(path.getAttribute('d') || '');
-
-          if (ds.length > 1) {
-            path.setAttribute('d', ds[0]);
-
-            ds.slice(1).forEach((d) => {
-              const extraPath = path.cloneNode() as SVGPathElement;
-              extraPath.setAttribute('d', d);
-              path.after(extraPath);
-            });
-          }
-        });
         props.onChange(root.querySelector('svg'));
       });
     } else {

@@ -1,47 +1,25 @@
 import earcut from 'earcut';
+import type { BezierPath } from './helpers/bezierPath';
 
-export const getPaths = (elemrnt: SVGElement) => {
-  let allPaths: SVGPathElement[] = [];
+export const generatePointsFromPath = (bezier: BezierPath | null, pointsPerPixels: number) => {
+  if (!bezier) return [];
 
-  const gs = elemrnt.querySelectorAll('g');
-  gs.forEach((g) => {
-    const groupPaths = g.querySelectorAll('path');
-    groupPaths.forEach((gp) => {
-      // biome-ignore lint/style/useConst: <explanation>
-      for (let t of g.transform.baseVal) {
-        gp.transform.baseVal.appendItem(t);
-      }
-      g.transform.baseVal.clear();
-      allPaths.push(gp);
-    });
-  });
-  allPaths = allPaths.concat(...(elemrnt.querySelectorAll('& > path') as unknown as SVGPathElement[]));
-  return allPaths;
-};
-
-export const isRow = (a: Point, b: Point, c: Point, eps: number) => {
-  const y = ((c.x - a.x) * (b.y - a.y)) / (b.x - a.x) + a.y;
-  return Math.abs(y - c.y) <= eps;
-};
-
-export const generatePointsFromPath = (path: SVGPathElement, pointsPerPixels: number) => {
-  const length = path.getTotalLength();
+  const length = bezier.getTotalLength();
   const pointsCount = Math.floor((length * pointsPerPixels) / 1000);
   const points = [];
 
-  if (pointsCount > 1) {
+  if (pointsCount > 1 && bezier) {
     for (let i = 0; i < pointsCount; i++) {
-      let pt = path.getPointAtLength((i * length) / (pointsCount - 1));
-
-      if (path.transform.baseVal.length > 0) {
-        const matrix = path.transform.baseVal.consolidate()?.matrix;
-        pt = pt.matrixTransform(matrix);
-      }
+      const pt = bezier.getPointAtLength((i * length) / (pointsCount - 1));
       points.push(pt);
     }
   }
 
   return points;
+};
+
+export const isRow = (a: Point, b: Point, c: Point, eps: number) => {
+  return Math.abs((a.y - b.y) * (a.x - c.x) - (a.y - c.y) * (a.x - b.x)) <= eps;
 };
 
 export const filterRow = (points: Point[], smoothing = 0.5) => {
@@ -57,9 +35,27 @@ export const filterRow = (points: Point[], smoothing = 0.5) => {
   return result;
 };
 
-export const generateTriangleMesh = (points: Point[]) => {
-  const flatPoints = points.flatMap((point) => [point.x, point.y]);
-  const vertices = earcut(flatPoints);
+const trim = (number: number) => +number.toFixed(2);
+
+export const generateTriangleMesh = (points: Point[], aHoles: Point[][]) => {
+  const holes = aHoles.map((hole) => hole.flatMap((point) => [point.x, point.y]));
+  const _points = points.flatMap((point) => [point.x, point.y]);
+
+  const holeVerts = holes
+    .reduce(
+      (acc, hole) => {
+        const prev = acc[acc.length - 1];
+
+        acc.push(prev + hole.length / 2 - 1);
+        acc.push(prev + hole.length / 2);
+        return acc;
+      },
+      [_points.length / 2],
+    )
+    .slice(0, -1);
+
+  const flatPoints = [..._points, ...holes.flat()];
+  const vertices = earcut(flatPoints, holeVerts);
   const triangles = [];
 
   for (let i = 0; i < vertices.length - 2; i += 3) {
@@ -67,24 +63,20 @@ export const generateTriangleMesh = (points: Point[]) => {
     const v2 = vertices[i + 1];
     const v3 = vertices[i + 2];
 
-    const x1 = flatPoints[v1 * 2];
-    const y1 = flatPoints[v1 * 2 + 1];
-    const x2 = flatPoints[v2 * 2];
-    const y2 = flatPoints[v2 * 2 + 1];
-    const x3 = flatPoints[v3 * 2];
-    const y3 = flatPoints[v3 * 2 + 1];
-
-    const trim = (number: number) => +number.toFixed(2);
-
-    const t = {
-      x1: trim(x1),
-      y1: trim(y1),
-      x2: trim(x2),
-      y2: trim(y2),
-      x3: trim(x3),
-      y3: trim(y3),
-    };
-    triangles.push(t);
+    triangles.push({
+      a: {
+        x: trim(flatPoints[v1 * 2]),
+        y: trim(flatPoints[v1 * 2 + 1]),
+      },
+      b: {
+        x: trim(flatPoints[v2 * 2]),
+        y: trim(flatPoints[v2 * 2 + 1]),
+      },
+      c: {
+        x: trim(flatPoints[v3 * 2]),
+        y: trim(flatPoints[v3 * 2 + 1]),
+      },
+    });
   }
 
   return triangles;
