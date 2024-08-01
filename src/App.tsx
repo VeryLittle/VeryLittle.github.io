@@ -49,7 +49,7 @@ function App() {
   const [svgElement, setSvgElement] = useState<SVGElement>(
     document.createElementNS('http://www.w3.org/2000/svg', 'svg'),
   );
-  const { paths, configs, updateConfig } = usePaths({ svgElement });
+  const { configs, updateConfig } = usePaths({ svgElement });
 
   const [maxPoints, setMaxPoints] = useState(100);
   const [smoothing, setSmoothing] = useState(0.5);

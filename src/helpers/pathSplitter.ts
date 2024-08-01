@@ -1,3 +1,4 @@
+// @ts-ignore
 import Snap from 'snapsvg-cjs';
 
 type Command = [string, number, number];

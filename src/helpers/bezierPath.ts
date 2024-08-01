@@ -1,4 +1,5 @@
 import _ from 'lodash';
+// @ts-ignore
 import Snap from 'snapsvg-cjs';
 
 const SAMPLE_SPACING = 2;
