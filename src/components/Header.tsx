@@ -5,7 +5,7 @@ export const Header = () => {
         <div className="flex flex-wrap justify-between items-center">
           <a href="/" className="flex items-center">
             <img
-              src="https://lh3.googleusercontent.com/ogw/AF2bZyhWlV3tfv8X3f7KVAna1oW6yJrF6wSHDFHEBYiPL5fKOQ=s32-c-mo"
+              src="/favicon.svg"
               className="mr-3 h-6 sm:h-9 rounded-full"
               alt=""
             />
