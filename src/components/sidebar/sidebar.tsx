@@ -5,7 +5,6 @@ import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scrollArea';
 import { Blend, LucideCopy, LucideEye, LucideEyeOff } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { toast } from 'sonner';
 
 import { Multiselect } from '../ui/multiselect';
@@ -61,31 +60,19 @@ export const Sidebar = () => {
                       return (
                         <div key={path} className="text-muted-foreground flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => {
-                                      updateConfig(path, {
-                                        ...configs[path],
-                                        selected: !configs[path].selected,
-                                      });
-                                    }}
-                                  >
-                                    {configs[path].selected ? (
-                                      <LucideEye size={20} />
-                                    ) : (
-                                      <LucideEyeOff size={20} />
-                                    )}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{configs[path].selected ? 'Hide' : 'Show'}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Button
+                              title={configs[path].selected ? 'Hide' : 'Show'}
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                updateConfig(path, {
+                                  ...configs[path],
+                                  selected: !configs[path].selected,
+                                });
+                              }}
+                            >
+                              {configs[path].selected ? <LucideEye size={20} /> : <LucideEyeOff size={20} />}
+                            </Button>
                             <div
                               className="rounded-full border w-4 h-4"
                               style={{ background: configs[path].color }}
@@ -95,71 +82,57 @@ export const Sidebar = () => {
                             </div>
                           </div>
                           <div className="flex gap-2 items-center">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <Multiselect
-                                  options={paths
-                                    .map((path, index) => ({
-                                      value: path,
-                                      label: `Path: ${index + 1}`,
-                                    }))
-                                    .filter(({ value }) => value !== path)}
-                                  value={configs[path].excluded.map((path) => ({
-                                    value: path,
-                                    label: `Path: ${paths.findIndex((p) => p === path) + 1}`,
-                                  }))}
-                                  getLabel={({ label }) => label}
-                                  getValue={({ value }) => value}
-                                  onChange={(value) =>
-                                    updateConfig(path, {
-                                      ...configs[path],
-                                      excluded: value.map((option) => option.value),
-                                    })
-                                  }
-                                >
-                                  <div>
-                                    <Button variant="ghost" size="icon" className="flex">
-                                      <TooltipTrigger>
-                                        <Blend size={16} />
-                                      </TooltipTrigger>
-                                    </Button>
-                                  </div>
-                                </Multiselect>
-                                <TooltipContent>
-                                  <p>Exclude pathes from current</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Multiselect
+                              options={paths
+                                .map((path, index) => ({
+                                  value: path,
+                                  label: `Path: ${index + 1}`,
+                                }))
+                                .filter(({ value }) => value !== path)}
+                              value={configs[path].excluded.map((path) => ({
+                                value: path,
+                                label: `Path: ${paths.findIndex((p) => p === path) + 1}`,
+                              }))}
+                              getLabel={({ label }) => label}
+                              getValue={({ value }) => value}
+                              onChange={(value) =>
+                                updateConfig(path, {
+                                  ...configs[path],
+                                  excluded: value.map((option) => option.value),
+                                })
+                              }
+                            >
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="flex"
+                                title="Exclude pathes from current"
+                              >
+                                <Blend size={16} />
+                              </Button>
+                            </Multiselect>
 
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => {
-                                      toast(`Path ${index + 1} was copied to clipboard`, {
-                                        icon: <LucideCopy size={14} />,
-                                      });
-                                      navigator.clipboard.writeText(
-                                        JSON.stringify(
-                                          triangles[path].map((t) => [
-                                            [t.a.x, t.a.y],
-                                            [t.b.x, t.b.y],
-                                            [t.c.x, t.c.y],
-                                          ]),
-                                        ),
-                                      );
-                                    }}
-                                  >
-                                    <LucideCopy size={16} />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Copy triangles to clipboard</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Button
+                              title="Copy triangles to clipboard"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                toast(`Path ${index + 1} was copied to clipboard`, {
+                                  icon: <LucideCopy size={14} />,
+                                });
+                                navigator.clipboard.writeText(
+                                  JSON.stringify(
+                                    triangles[path].map((t) => [
+                                      [t.a.x, t.a.y],
+                                      [t.b.x, t.b.y],
+                                      [t.c.x, t.c.y],
+                                    ]),
+                                  ),
+                                );
+                              }}
+                            >
+                              <LucideCopy size={16} />
+                            </Button>
                           </div>
                         </div>
                       );
