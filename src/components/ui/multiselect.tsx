@@ -2,7 +2,6 @@
 
 import type { ReactNode, PropsWithChildren } from 'react';
 
-import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
