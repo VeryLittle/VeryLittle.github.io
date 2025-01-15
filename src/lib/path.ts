@@ -1,4 +1,3 @@
-// @ts-ignore
 import Snap from 'snapsvg-cjs';
 
 type Command = [string, number, number];
@@ -95,4 +94,41 @@ export const splitPath = (pathData: string) => {
   }
 
   return pathToAbsoluteSubPaths(pathData);
+};
+
+export const normalizeSvg = (element: SVGElement) => {
+  element.querySelectorAll('path').forEach((path) => {
+    path.setAttribute('strike', path.getAttribute('fill') || '');
+    path.setAttribute('fill', '');
+
+    const ds = splitPath(path.getAttribute('d') || '');
+
+    if (ds.length > 1) {
+      path.setAttribute('d', ds[0]);
+      ds.slice(1).forEach((d) => {
+        const extraPath = path.cloneNode() as SVGPathElement;
+        extraPath.setAttribute('d', d);
+        path.after(extraPath);
+      });
+    }
+  });
+  return element;
+};
+
+export const getAllPaths = (element: SVGElement) => {
+  let allPaths: SVGPathElement[] = [];
+  const gs = element.querySelectorAll('g');
+  gs.forEach((g) => {
+    const groupPaths = g.querySelectorAll('path');
+    groupPaths.forEach((gp) => {
+      // biome-ignore lint/style/useConst: <explanation>
+      for (let t of g.transform.baseVal) {
+        gp.transform.baseVal.appendItem(t);
+      }
+      g.transform.baseVal.clear();
+      allPaths.push(gp);
+    });
+  });
+  allPaths = allPaths.concat(...(element.querySelectorAll('& > path') as unknown as SVGPathElement[]));
+  return allPaths;
 };

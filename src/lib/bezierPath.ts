@@ -1,8 +1,10 @@
-import _ from 'lodash';
-// @ts-ignore
 import Snap from 'snapsvg-cjs';
 
 const SAMPLE_SPACING = 2;
+
+const _ = {
+  times: (n: number) => Array.from(new Array(n)).map((_, index) => index),
+};
 
 type Point = {
   x: number;
@@ -186,7 +188,8 @@ export class BezierPath {
     const idxA = this.findClosestSampleIdx(length);
     const idxB =
       this.samples[idxA].dist < length ? Math.min(idxA + 1, this.samples.length - 1) : Math.max(0, idxA - 1);
-    const mix = (length - this.samples[idxA].dist) / (this.samples[idxB].dist - this.samples[idxA].dist);
+    const sampleDelta = this.samples[idxB].dist - this.samples[idxA].dist;
+    const mix = sampleDelta && (length - this.samples[idxA].dist) / sampleDelta;
 
     if (approximate || this.samples[idxA].segIdx !== this.samples[idxB].segIdx) {
       // We have a set of evenly spaced samples that are close enough together
@@ -205,8 +208,8 @@ export class BezierPath {
   }
 }
 
-export const bezierFromPath = (element: SVGPathElement) => {
-  const commands = Snap.path.toCubic(element.getAttribute('d'));
+export const bezierFromPath = (path: string) => {
+  const commands = Snap.path.toCubic(path);
   let lastPoint = { x: commands[0][1], y: commands[0][2] };
   commands.shift();
   const segments = [];

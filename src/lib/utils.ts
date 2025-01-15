@@ -1,5 +1,24 @@
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 import earcut from 'earcut';
-import type { BezierPath } from './helpers/bezierPath';
+import type { BezierPath } from './bezierPath';
+
+export const cn = (...inputs: ClassValue[]) => {
+  return twMerge(clsx(inputs));
+};
+
+export const pickFile = (cb: (file: File | undefined) => void, accept: string) => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = accept;
+  input.addEventListener('change', () => {
+    cb(input.files?.[0]);
+  });
+  input.addEventListener('cancel', () => {
+    cb(undefined);
+  });
+  input.click();
+};
 
 export const generatePointsFromPath = (bezier: BezierPath | null, pointsPerPixels: number) => {
   if (!bezier) return [];
@@ -8,7 +27,7 @@ export const generatePointsFromPath = (bezier: BezierPath | null, pointsPerPixel
   const pointsCount = Math.floor((length * pointsPerPixels) / 1000);
   const points = [];
 
-  if (pointsCount > 1 && bezier) {
+  if (pointsCount > 1) {
     for (let i = 0; i < pointsCount; i++) {
       const pt = bezier.getPointAtLength((i * length) / (pointsCount - 1));
       points.push(pt);

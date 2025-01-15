@@ -1,7 +1,7 @@
-import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
+import { createRoot } from 'react-dom/client';
 import './index.css';
+// @ts-ignore
+import App from './app.tsx';
 
-const rootElement = document.getElementById('root')
-
-rootElement && ReactDOM.createRoot(rootElement).render(<App />);
+// biome-ignore lint/style/noNonNullAssertion: <explanation>
+createRoot(document.getElementById('root')!).render(<App />);
