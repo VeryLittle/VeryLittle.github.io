@@ -5,15 +5,16 @@ import { Corner, Root, ScrollAreaScrollbar, ScrollAreaThumb, Viewport } from '@r
 
 import { cn } from '@/lib/utils';
 
-const ScrollArea = forwardRef<ElementRef<typeof Root>, ComponentPropsWithoutRef<typeof Root>>(
-  ({ className, children, ...props }, ref) => (
-    <Root ref={ref} className={cn('relative overflow-hidden', className)} {...props}>
-      <Viewport className="h-full w-full rounded-[inherit]">{children}</Viewport>
-      <ScrollBar />
-      <Corner />
-    </Root>
-  ),
-);
+const ScrollArea = forwardRef<
+  ElementRef<typeof Root>,
+  ComponentPropsWithoutRef<typeof Root> & { viewportClassName?: string }
+>(({ className, children, viewportClassName, ...props }, ref) => (
+  <Root ref={ref} className={cn('relative overflow-hidden', className)} {...props}>
+    <Viewport className={cn('h-full w-full rounded-[inherit]', viewportClassName)}>{children}</Viewport>
+    <ScrollBar />
+    <Corner />
+  </Root>
+));
 ScrollArea.displayName = Root.displayName;
 
 const ScrollBar = forwardRef<

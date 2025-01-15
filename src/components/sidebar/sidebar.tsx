@@ -3,10 +3,12 @@ import { Logo } from './components/logo';
 import { Slider } from '../ui/slider';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scrollArea';
-import { LucideCopy, LucideEye, LucideEyeClosed, LucideEyeOff } from 'lucide-react';
+import { Blend, LucideCopy, LucideEye, LucideEyeOff } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { toast } from 'sonner';
+
+import { Multiselect } from '../ui/multiselect';
 
 export const Sidebar = () => {
   const { file, smoothing, setSmoothing, maxPoints, setMaxPoints, paths, configs, triangles, updateConfig } =
@@ -42,7 +44,7 @@ export const Sidebar = () => {
               value={[maxPoints]}
               onValueChange={(value) => setMaxPoints(value[0])}
               min={10}
-              max={1000}
+              max={2000}
               step={10}
             />
           </div>
@@ -59,53 +61,106 @@ export const Sidebar = () => {
                       return (
                         <div key={path} className="text-muted-foreground flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                updateConfig(path, { ...configs[path], selected: !configs[path].selected });
-                              }}
-                            >
-                              {configs[path].selected ? <LucideEye size={20} /> : <LucideEyeOff size={20} />}
-                            </Button>
-
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      updateConfig(path, {
+                                        ...configs[path],
+                                        selected: !configs[path].selected,
+                                      });
+                                    }}
+                                  >
+                                    {configs[path].selected ? (
+                                      <LucideEye size={20} />
+                                    ) : (
+                                      <LucideEyeOff size={20} />
+                                    )}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{configs[path].selected ? 'Hide' : 'Show'}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             <div
                               className="rounded-full border w-4 h-4"
                               style={{ background: configs[path].color }}
                             />
-                            <div className="text-sm">
+                            <div className="text-sm flex">
                               Path: {index + 1} ({triangles[path].length})
                             </div>
                           </div>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => {
-                                    toast(`Path ${index + 1} was copied to clipboard`, {
-                                      icon: <LucideCopy size={14} />,
-                                    });
-                                    navigator.clipboard.writeText(
-                                      JSON.stringify(
-                                        triangles[path].map((t) => [
-                                          [t.a.x, t.a.y],
-                                          [t.b.x, t.b.y],
-                                          [t.c.x, t.c.y],
-                                        ]),
-                                      ),
-                                    );
-                                  }}
+                          <div className="flex gap-2 items-center">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <Multiselect
+                                  options={paths
+                                    .map((path, index) => ({
+                                      value: path,
+                                      label: `Path: ${index + 1}`,
+                                    }))
+                                    .filter(({ value }) => value !== path)}
+                                  value={configs[path].excluded.map((path) => ({
+                                    value: path,
+                                    label: `Path: ${paths.findIndex((p) => p === path) + 1}`,
+                                  }))}
+                                  getLabel={({ label }) => label}
+                                  getValue={({ value }) => value}
+                                  onChange={(value) =>
+                                    updateConfig(path, {
+                                      ...configs[path],
+                                      excluded: value.map((option) => option.value),
+                                    })
+                                  }
                                 >
-                                  <LucideCopy size={16} />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Copy triangles to clipboard</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                                  <div>
+                                    <Button variant="ghost" size="icon" className="flex">
+                                      <TooltipTrigger>
+                                        <Blend size={16} />
+                                      </TooltipTrigger>
+                                    </Button>
+                                  </div>
+                                </Multiselect>
+                                <TooltipContent>
+                                  <p>Exclude pathes from current</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      toast(`Path ${index + 1} was copied to clipboard`, {
+                                        icon: <LucideCopy size={14} />,
+                                      });
+                                      navigator.clipboard.writeText(
+                                        JSON.stringify(
+                                          triangles[path].map((t) => [
+                                            [t.a.x, t.a.y],
+                                            [t.b.x, t.b.y],
+                                            [t.c.x, t.c.y],
+                                          ]),
+                                        ),
+                                      );
+                                    }}
+                                  >
+                                    <LucideCopy size={16} />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Copy triangles to clipboard</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
                         </div>
                       );
                     })}
@@ -121,11 +176,10 @@ export const Sidebar = () => {
             <Logo />
             <div>Mesh generator</div>
           </div>
-          <div className="text-muted-foreground text-sm mt-4">
-            Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been
-            the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of
-            type and scrambled it to make a type specimen book. It has survived not only five centuries, but
-            also the leap into electronic typesetting, remaining essentially unchanged.
+          <div className="text-muted-foreground text-sm mt-4 flex flex-col gap-2">
+            <p>An application for creating polygonal meshes from SVG files.</p>
+            <p>It supports mesh density adjustment, geometry optimization, and export.</p>
+            <p>The interface includes preview, zoom, and pan functionality.</p>
           </div>
         </>
       )}
