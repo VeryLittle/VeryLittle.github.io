@@ -8,7 +8,7 @@ export const Stub = () => {
   if (file) return null;
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center mx-2 text-center">
       <svg
         width="41"
         height="40"
