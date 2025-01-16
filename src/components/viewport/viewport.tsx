@@ -3,7 +3,7 @@ import { type PathConfig, useStore } from '../store/store';
 import _ from '@/lib/canvas';
 import { useEffect, useRef } from 'react';
 import { FilePicker } from './components/filePicker';
-import { zoomTransform, select, zoom } from 'd3';
+import { zoomTransform, select, zoom, zoomIdentity } from 'd3';
 import type { Triangle } from '@/lib/utils';
 
 const render = (
@@ -52,11 +52,6 @@ export const Viewport = () => {
         .scaleExtent([0.1, 8])
         .on('zoom', () => render(canvas, paths, triangles, configs)),
     );
-  }, [paths, triangles, configs]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
 
     const handler = () => {
       render(canvas, paths, triangles, configs);
@@ -64,6 +59,12 @@ export const Viewport = () => {
     window.addEventListener('resize', handler);
     return () => window.removeEventListener('resize', handler);
   }, [paths, triangles, configs]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    select(canvas as Element).call(zoom().transform, zoomIdentity);
+  }, [paths]);
 
   return (
     <div className="flex-1 relative">
@@ -76,6 +77,7 @@ export const Viewport = () => {
 
         {file && <canvas ref={canvasRef} className="w-full h-full absolute" />}
       </div>
+      {/* ZoomController select(canvas as Element).transition().duration(750).call(zoomApi.transform, zoomIdentity) */}
     </div>
   );
 };
