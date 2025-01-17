@@ -1,4 +1,4 @@
-import Snap from 'snapsvg-cjs';
+import { parsePathString } from 'snapsvg-cjs';
 
 type Command = [string, number, number];
 type Point = [number, number];
@@ -6,7 +6,7 @@ type Point = [number, number];
 export const splitPath = (pathData: string) => {
   function pathToAbsoluteSubPaths(pathString: string) {
     // @ts-ignore
-    const pathCommands: Command[] = Snap.parsePathString(pathString);
+    const pathCommands: Command[] = parsePathString(pathString);
     let endPoint: Point = [0, 0];
     const subPaths = [];
     let command = [] as unknown as Command;

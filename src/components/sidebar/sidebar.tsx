@@ -3,11 +3,13 @@ import { Logo } from './components/logo';
 import { Slider } from '../ui/slider';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scrollArea';
-import { Blend, LucideCopy, LucideEye, LucideEyeOff } from 'lucide-react';
+import { ArrowDownToLine, Blend, LucideEye, LucideEyeOff } from 'lucide-react';
 import { Button } from '../ui/button';
-import { toast } from 'sonner';
 
 import { Multiselect } from '../ui/multiselect';
+import { formatCode } from '@/lib/prettier';
+import { saveFile } from '@/lib/utils';
+import { path as snapPath } from 'snapsvg-cjs';
 
 export const Sidebar = () => {
   const { file, smoothing, setSmoothing, maxPoints, setMaxPoints, paths, configs, triangles, updateConfig } =
@@ -106,32 +108,45 @@ export const Sidebar = () => {
                                 variant="ghost"
                                 size="icon"
                                 className="flex"
-                                title="Exclude pathes from current"
+                                title="Exclude paths from the current path"
                               >
                                 <Blend size={16} />
                               </Button>
                             </Multiselect>
 
                             <Button
-                              title="Copy triangles to clipboard"
+                              title="Download config file"
                               variant="ghost"
                               size="icon"
-                              onClick={() => {
-                                toast(`Path ${index + 1} was copied to clipboard`, {
-                                  icon: <LucideCopy size={14} />,
-                                });
-                                navigator.clipboard.writeText(
-                                  JSON.stringify(
-                                    triangles[path].map((t) => [
-                                      [t.a.x, t.a.y],
-                                      [t.b.x, t.b.y],
-                                      [t.c.x, t.c.y],
-                                    ]),
-                                  ),
-                                );
+                              onClick={async () => {
+                                const { x, y, width, height } = snapPath.getBBox(path);
+                                const code = await formatCode(`
+                                  export default {
+                                    low: ${JSON.stringify([
+                                      [
+                                        [x, y],
+                                        [x + width, y],
+                                        [x + width, y + height],
+                                      ],
+                                      [
+                                        [x, y],
+                                        [x, y + height],
+                                        [x + width, y + height],
+                                      ],
+                                    ])},
+                                    high: ${JSON.stringify(
+                                      triangles[path].map((t) => [
+                                        [t.a.x, t.a.y],
+                                        [t.b.x, t.b.y],
+                                        [t.c.x, t.c.y],
+                                      ]),
+                                    )}
+                                  }
+                                `);
+                                saveFile(code, `Path ${index + 1}`);
                               }}
                             >
-                              <LucideCopy size={16} />
+                              <ArrowDownToLine size={16} />
                             </Button>
                           </div>
                         </div>

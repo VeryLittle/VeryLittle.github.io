@@ -1,4 +1,4 @@
-import Snap from 'snapsvg-cjs';
+import { path as snapPath } from 'snapsvg-cjs';
 
 const SAMPLE_SPACING = 2;
 
@@ -209,7 +209,7 @@ export class BezierPath {
 }
 
 export const bezierFromPath = (path: string) => {
-  const commands = Snap.path.toCubic(path);
+  const commands = snapPath.toCubic(path);
   let lastPoint = { x: commands[0][1], y: commands[0][2] };
   commands.shift();
   const segments = [];

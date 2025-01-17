@@ -20,6 +20,16 @@ export const pickFile = (cb: (file: File | undefined) => void, accept: string) =
   input.click();
 };
 
+export const saveFile = (code: string, name: string) => {
+  const a = document.createElement('a');
+  a.href = window.URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+  a.download = `${name}.ts`;
+
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+};
+
 export const generatePointsFromPath = (bezier: BezierPath | null, pointsPerPixels: number) => {
   if (!bezier) return [];
 
