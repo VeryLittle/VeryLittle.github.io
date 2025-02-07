@@ -11,6 +11,8 @@ import { formatCode } from '@/lib/prettier';
 import { saveFile } from '@/lib/utils';
 import { path as snapPath } from 'snapsvg-cjs';
 
+const trim = (number: number) => +number.toFixed(2);
+
 export const Sidebar = () => {
   const { file, smoothing, setSmoothing, maxPoints, setMaxPoints, paths, configs, triangles, updateConfig } =
     useStore();
@@ -122,24 +124,28 @@ export const Sidebar = () => {
                                 const { x, y, width, height } = snapPath.getBBox(path);
                                 const code = await formatCode(`
                                   export default {
-                                    low: ${JSON.stringify([
+                                    low: ${JSON.stringify(
                                       [
-                                        [x, y],
-                                        [x + width, y],
-                                        [x + width, y + height],
-                                      ],
-                                      [
-                                        [x, y],
-                                        [x, y + height],
-                                        [x + width, y + height],
-                                      ],
-                                    ])},
+                                        [
+                                          [trim(x), trim(y)],
+                                          [trim(x + width), trim(y)],
+                                          [trim(x + width), trim(y + height)],
+                                        ],
+                                        [
+                                          [trim(x), trim(y)],
+                                          [trim(x), trim(y + height)],
+                                          [trim(x + width), trim(y + height)],
+                                        ],
+                                      ].flat(2),
+                                    )},
                                     high: ${JSON.stringify(
-                                      triangles[path].map((t) => [
-                                        [t.a.x, t.a.y],
-                                        [t.b.x, t.b.y],
-                                        [t.c.x, t.c.y],
-                                      ]),
+                                      triangles[path]
+                                        .map((t) => [
+                                          [t.a.x, t.a.y],
+                                          [t.b.x, t.b.y],
+                                          [t.c.x, t.c.y],
+                                        ])
+                                        .flat(2),
                                     )}
                                   }
                                 `);
