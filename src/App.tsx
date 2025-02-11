@@ -3,6 +3,7 @@ import { Sidebar } from './components/sidebar/sidebar';
 import { StoreProvider } from './components/store/store';
 import { Viewport } from './components/viewport/viewport';
 import { Toaster } from './components/ui/toaster';
+import { Dropzone } from './components/dropzone/dropzone';
 
 function App() {
   return (
@@ -11,7 +12,8 @@ function App() {
         <Viewport />
         <Sidebar />
       </div>
-      <Toaster />
+      <Dropzone />
+      <Toaster richColors />
     </StoreProvider>
   );
 }
